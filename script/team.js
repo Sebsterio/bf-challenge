@@ -3,6 +3,8 @@ class Team {
 		this.name = name;
 		this.association = association;
 		this.seed = seed;
+		this.groupNum = null;
+		this.place = null;
 		this.matchGoals = 0; // reset every match
 		this.groupGoals = []; // [goalsNum, opponentName, awayBool]
 		this.groupPoints = []; // [pointsNum, opponentName]
