@@ -12,11 +12,6 @@ class Team {
 		this.tournamentPoints = 0;
 	}
 
-	// reset() {
-	// 	this.seed = this.place;
-	// 	this.place = null;
-	// }
-
 	addGoals(goalsNum, opponentName, isAway) {
 		this.groupGoals.push([goalsNum, opponentName, isAway]);
 		this.tournamentGoals += goalsNum;

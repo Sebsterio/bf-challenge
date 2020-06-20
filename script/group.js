@@ -23,6 +23,16 @@ class Group {
 		return !!this.teams.find((team) => team.groupNum === groupNum);
 	}
 
+	// Determine group winners
+	play() {
+		this.runMatches();
+		this.teams.sort((cur, next) => this.compareScores(cur, next));
+		this.teams.forEach((team, i) => {
+			team.place = i + 1;
+			team.groupNum = this.groupNum;
+		});
+	}
+
 	match(homeTeam, guestTeam) {
 		// Generate score
 		[homeTeam, guestTeam].forEach((team) => (team.matchGoals = randomScore()));
@@ -58,7 +68,7 @@ class Group {
 	}
 
 	showResults() {
-		console.log("Group " + this.number);
+		console.log("\nGroup " + this.number);
 		this.results.forEach(({ localName, localGoals, guestName, guestGoals }) =>
 			console.log(
 				`${localGoals}:${guestGoals} --- ${localName} vs ${guestName}`
@@ -67,14 +77,15 @@ class Group {
 	}
 }
 
+// ------------------------- Group of 4 teams --------------------------
+
 class Group4 extends Group {
 	constructor(props) {
 		super(props);
 	}
 
-	// Determine group winners
-	play() {
-		// Run matches between team pairs in a specified sequence
+	// Run matches between team pairs in a specified sequence
+	runMatches() {
 		const sequence = GROUP_STAGE_SEQUENCE;
 		sequence.forEach((pair) => {
 			// e.g. pair: [1,2] -> match: teams[0] vs teams[1]
@@ -82,73 +93,81 @@ class Group4 extends Group {
 			const guestTeam = this.teams[pair[1] - 1];
 			this.match(homeTeam, guestTeam);
 		});
+	}
 
-		// Determine group winners
-		this.teams.sort((cur, next) => {
-			// Compare total points
-			let difference = next.getGroupPoints() - cur.getGroupPoints();
+	// 'Sort' function
+	compareScores(cur, next) {
+		// Compare total points
+		let difference = next.getGroupPoints() - cur.getGroupPoints();
+		if (difference === 0) {
+			// Compare points obtained from matches between compared teams
+			difference = next.getGroupPoints(cur) - cur.getGroupPoints(next);
 			if (difference === 0) {
-				// Compare points obtained from matches between compared teams
-				difference = next.getGroupPoints(cur) - cur.getGroupPoints(next);
+				// Compare goals obtained from matches between compared teams
+				difference = next.getGroupGoals(cur) - cur.getGroupGoals(next);
 				if (difference === 0) {
-					// Compare goals obtained from matches between compared teams
-					difference = next.getGroupGoals(cur) - cur.getGroupGoals(next);
+					// Compare goals away from home from matches between compared teams
+					difference =
+						next.getGroupGoalsAway(cur) - cur.getGroupGoalsAway(next);
 					if (difference === 0) {
-						// Compare goals away from home from matches between compared teams
-						difference =
-							next.getGroupGoalsAway(cur) - cur.getGroupGoalsAway(next);
-						if (difference === 0) {
-							// Compare total goals
-							difference = next.getGroupGoals() - cur.getGroupGoals();
-							if (difference === 0) return Math.random() - 0.5;
-						}
+						// Compare total goals
+						difference = next.getGroupGoals() - cur.getGroupGoals();
+						if (difference === 0) return Math.random() - 0.5;
 					}
 				}
 			}
-			return difference;
-		});
-
-		this.teams.forEach((team, i) => {
-			team.place = i + 1;
-			team.groupNum = this.groupNum;
-		});
+		}
+		return difference;
 	}
 }
+
+// ------------------------- Group of 2 teams --------------------------
 
 class Group2 extends Group {
 	constructor(props) {
 		super(props);
-		this.debug = true; // <<<<<<<<<<<<<<<<<<<<
 	}
 
-	// Determine group winners
-	play() {
+	runMatches() {
 		const homeTeam = this.teams[0];
 		const guestTeam = this.teams[1];
 		this.match(homeTeam, guestTeam);
 		this.match(guestTeam, homeTeam);
+	}
 
-		// Determine group winners
-		this.teams.sort((cur, next) => {
-			// Compare total goals
-			let difference = next.getGroupGoals() - cur.getGroupGoals();
+	compareScores(cur, next) {
+		// Compare total goals
+		let difference = next.getGroupGoals() - cur.getGroupGoals();
+		if (difference === 0) {
+			// Compare goals away from home from matches between compared teams
+			difference = next.getGroupGoalsAway(cur) - cur.getGroupGoalsAway(next);
 			if (difference === 0) {
-				// Compare goals away from home from matches between compared teams
-				difference = next.getGroupGoalsAway(cur) - cur.getGroupGoalsAway(next);
-				if (difference === 0) {
-					// award a goal to a random team
-					if (Math.random() < 0.5) next.addGoals([1, cur, null]);
-					else cur.addGoals([1, next, null]);
-					return next.getGroupGoals() - cur.getGroupGoals();
-				}
+				// Awar random goal and compare totals
+				this.awardRandomGoal(cur, next);
+				return next.getGroupGoals() - cur.getGroupGoals();
 			}
+		}
+		return difference;
+	}
 
-			return difference;
-		});
+	// award a goal to a random team
+	awardRandomGoal(cur, next) {
+		if (Math.random() < 0.5) next.addGoals([1, cur, null]);
+		else cur.addGoals([1, next, null]);
+	}
+}
 
-		this.teams.forEach((team, i) => {
-			team.place = i + 1;
-			team.groupNum = this.groupNum;
-		});
+// ------------------ Group of 2 teams - pre-final ---------------------
+
+class Group2PreFinals extends Group2 {
+	compareScores(cur, next) {
+		// Compare total goals
+		let difference = next.getGroupGoals() - cur.getGroupGoals();
+		if (difference === 0) {
+			// Awar random goal and compare totals
+			this.awardRandomGoal(cur, next);
+			return next.getGroupGoals() - cur.getGroupGoals();
+		}
+		return difference;
 	}
 }

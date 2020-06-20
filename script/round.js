@@ -44,12 +44,12 @@ class Round {
 	}
 
 	showDraw() {
-		console.log(`--------- ${this.name} Draw  ---------`);
+		console.log(`|\n|--------- ${this.name} Draw  ---------\n|`);
 		this.groups.forEach((group) => group.showDraw());
 	}
 
 	showResults() {
-		console.log(`--------- ${this.name} Results  ---------`);
+		console.log(`|\n|--------- ${this.name} Results  ---------\n|`);
 		this.groups.forEach((group) => group.showResults());
 	}
 }
@@ -72,7 +72,7 @@ class GroupStage extends Round {
 	}
 
 	showTables() {
-		console.log(`--------- ${this.name} Tables  ---------`);
+		console.log(`|\n|--------- ${this.name} Tables  ---------\n|`);
 		this.groups.forEach((group) => {
 			const { number, teams } = group;
 			console.log("Group " + number);
@@ -112,6 +112,10 @@ class KnockOutRound extends Round {
 // ---------------- Quarter-finals, Semi-finals, Finals ------------------
 
 class PreFinalRound extends KnockOutRound {
+	createGroup({ number }) {
+		return new Group2PreFinals({ number });
+	}
+
 	isTeamEligible() {
 		return true;
 	}
