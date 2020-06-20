@@ -1,5 +1,3 @@
-const TEAMS_IN_GROUP = 4;
-
 class Round {
 	constructor({ name, teams }) {
 		this.name = name;
@@ -7,38 +5,27 @@ class Round {
 		this.groups = [];
 	}
 
-	// Determine winners of the round
 	start() {
 		this.makeGroups(this.teams);
-
-		// let winner, second;
 		this.groups.forEach((group, i) => group.play());
-		// return [winner, second];
 	}
 
 	// Instantiate groups and add them to this.groups array
 	makeGroups(teams) {
 		// Determine number of groups to create
-		const teamsInGroup = TEAMS_IN_GROUP;
-		const groupsToMake = teams.length / teamsInGroup;
+		const groupsToMake = teams.length / this.teamsInGroup;
 		if (!Number.isInteger(groupsToMake)) throw Error("Invalid number of teams");
-
-		// Get number of possible seeds
-		const seeds = teams.map((team) => team.seed);
-		const minSeed = seeds.reduce((acc, cur) => (cur > acc ? acc : cur));
-		const maxSeed = seeds.reduce((acc, cur) => (cur > acc ? cur : acc));
 
 		const teamsCopy = [...teams];
 
 		// Distribute teams from teamsCopy among new groups
 		for (let i = 0; i < groupsToMake; i++) {
-			const newGroup = new Group({ number: i + 1 });
+			let newGroup = this.createGroup({ number: i + 1 });
 
-			// Add one team of each seed - without repeating association
-			for (let i = minSeed; i <= maxSeed; i++) {
-				const teamIndex = teamsCopy.findIndex(
-					(team) =>
-						team.seed === i && !newGroup.hasAssociation(team.association)
+			// Add one team of each seed - respecting specified conditions
+			for (let i = 1; i <= this.teamsInGroup; i++) {
+				const teamIndex = teamsCopy.findIndex((team) =>
+					this.isTeamEligible(team, newGroup, i)
 				);
 				if (teamIndex < 0) throw Error("Error creating groups");
 
@@ -50,13 +37,41 @@ class Round {
 		}
 	}
 
-	showResults() {
+	showStats() {
+		this.showDraw();
+		this.showResults();
+		if (this.teamsInGroup === 4) this.showTables();
+	}
+
+	showDraw() {
 		console.log(`--------- ${this.name} Draw  ---------`);
 		this.groups.forEach((group) => group.showDraw());
+	}
 
+	showResults() {
 		console.log(`--------- ${this.name} Results  ---------`);
 		this.groups.forEach((group) => group.showResults());
+	}
+}
 
+// --------------------------- Group Stage ---------------------------
+
+class GroupStage extends Round {
+	constructor(props) {
+		super(props);
+		this.teamsInGroup = 4;
+	}
+
+	createGroup({ number }) {
+		return new Group4({ number });
+	}
+
+	// One from each seed, without repeating associations
+	isTeamEligible(team, newGroup, seed) {
+		return team.seed === seed && !newGroup.hasAssociation(team.association);
+	}
+
+	showTables() {
 		console.log(`--------- ${this.name} Tables  ---------`);
 		this.groups.forEach((group) => {
 			const { number, teams } = group;
@@ -73,9 +88,31 @@ class Round {
 	}
 }
 
-// class GroupStage extends Round {
-// 	constructor(props) {
-// 		super(props);
-// 	}
+// --------------------------- Knock Out Round ---------------------------
 
-// }
+class KnockOutRound extends Round {
+	constructor(props) {
+		super(props);
+		this.teamsInGroup = 2;
+	}
+
+	createGroup({ number }) {
+		return new Group2({ number });
+	}
+
+	isTeamEligible(team, newGroup, place) {
+		return (
+			team.place === place &&
+			!newGroup.hasAssociation(team.association) &&
+			team.groupNum !== !newGroup.hasGroupMember(team.groupNum)
+		);
+	}
+}
+
+// ---------------- Quarter-finals, Semi-finals, Finals ------------------
+
+class PreFinalRound extends KnockOutRound {
+	isTeamEligible() {
+		return true;
+	}
+}

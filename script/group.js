@@ -4,8 +4,9 @@ const GROUP_STAGE_SEQUENCE= [[2, 3],[4, 1],[1, 2],[3, 4],[3, 1],[2, 4],[1, 3],[4
 const randomScore = () => Math.floor(Math.random() * 3);
 
 class Group {
-	constructor({ number }) {
+	constructor({ number, teamsInGroup }) {
 		this.number = number;
+		this.teamsInGroup = teamsInGroup;
 		this.teams = [];
 		this.results = [];
 	}
@@ -16,6 +17,59 @@ class Group {
 
 	hasAssociation(association) {
 		return !!this.teams.find((team) => team.association === association);
+	}
+
+	hasGroupMember(groupNum) {
+		return !!this.teams.find((team) => team.groupNum === groupNum);
+	}
+
+	match(homeTeam, guestTeam) {
+		// Generate score
+		[homeTeam, guestTeam].forEach((team) => (team.matchGoals = randomScore()));
+
+		this.results.push({
+			localName: homeTeam.name,
+			localGoals: homeTeam.matchGoals,
+			guestName: guestTeam.name,
+			guestGoals: guestTeam.matchGoals,
+		});
+
+		// Add stats to team
+		[homeTeam, guestTeam].forEach((_, i) => {
+			const team = i === 0 ? homeTeam : guestTeam;
+			const opponent = i === 0 ? guestTeam : homeTeam;
+			const teamIsAway = i === 1;
+
+			// Save goals (take note of opponnent for future tie resolutions)
+			team.addGoals(team.matchGoals, opponent.name, teamIsAway);
+
+			// Attribute points (take note of opponnent for future tie resolutions)
+			if (team.matchGoals > opponent.matchGoals)
+				team.addPoints(3, opponent.name);
+			else if (team.matchGoals === opponent.matchGoals)
+				team.addPoints(1, opponent.name);
+		});
+	}
+
+	showDraw() {
+		console.log(
+			`Group ${this.number}: ${this.teams.map((team) => team.name).join(", ")}`
+		);
+	}
+
+	showResults() {
+		console.log("Group " + this.number);
+		this.results.forEach(({ localName, localGoals, guestName, guestGoals }) =>
+			console.log(
+				`${localGoals}:${guestGoals} --- ${localName} vs ${guestName}`
+			)
+		);
+	}
+}
+
+class Group4 extends Group {
+	constructor(props) {
+		super(props);
 	}
 
 	// Determine group winners
@@ -58,48 +112,43 @@ class Group {
 			team.place = i + 1;
 			team.groupNum = this.groupNum;
 		});
+	}
+}
 
-		// return winners
-		// return [group[0], group[1]];
+class Group2 extends Group {
+	constructor(props) {
+		super(props);
+		this.debug = true; // <<<<<<<<<<<<<<<<<<<<
 	}
 
-	match(homeTeam, guestTeam) {
-		// Generate score
-		[homeTeam, guestTeam].forEach((team) => (team.matchGoals = randomScore()));
+	// Determine group winners
+	play() {
+		const homeTeam = this.teams[0];
+		const guestTeam = this.teams[1];
+		this.match(homeTeam, guestTeam);
+		this.match(guestTeam, homeTeam);
 
-		this.results.push({
-			homeName: homeTeam.name,
-			homeGoals: homeTeam.matchGoals,
-			guestName: guestTeam.name,
-			guestGoals: guestTeam.matchGoals,
+		// Determine group winners
+		this.teams.sort((cur, next) => {
+			// Compare total goals
+			let difference = next.getGroupGoals() - cur.getGroupGoals();
+			if (difference === 0) {
+				// Compare goals away from home from matches between compared teams
+				difference = next.getGroupGoalsAway(cur) - cur.getGroupGoalsAway(next);
+				if (difference === 0) {
+					// award a goal to a random team
+					if (Math.random() < 0.5) next.addGoals([1, cur, null]);
+					else cur.addGoals([1, next, null]);
+					return next.getGroupGoals() - cur.getGroupGoals();
+				}
+			}
+
+			return difference;
 		});
 
-		// Add stats to team
-		[(homeTeam, guestTeam)].forEach((_, i) => {
-			const team = i === 0 ? homeTeam : guestTeam;
-			const opponent = i === 0 ? guestTeam : homeTeam;
-			const teamIsAway = i === 1;
-
-			// Save goals (take note of opponnent for future tie resolutions)
-			team.addGoals(team.matchGoals, opponent.name, teamIsAway);
-
-			// Attribute points (take note of opponnent for future tie resolutions)
-			if (team.matchGoals > opponent.matchGoals)
-				team.addPoints(3, opponent.name);
-			else if (team.matchGoals === opponent.matchGoals)
-				team.addPoints(1, opponent.name);
+		this.teams.forEach((team, i) => {
+			team.place = i + 1;
+			team.groupNum = this.groupNum;
 		});
-	}
-
-	showDraw() {
-		console.log(
-			`Group ${this.number}: ${this.teams.map((team) => team.name).join(", ")}`
-		);
-	}
-	showResults() {
-		console.log("Group " + this.number);
-		this.results.forEach(({ homeName, homeGoals, guestName, guestGoals }) =>
-			console.log(`${homeGoals}:${guestGoals} --- ${homeName} vs ${guestName}`)
-		);
 	}
 }

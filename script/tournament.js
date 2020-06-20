@@ -4,26 +4,64 @@ class Tournament {
 	constructor({ teamData }) {
 		this.teams = getTeamsFromData(teamData);
 		this.rounds = [];
+		this.winner = null;
 	}
 
 	start() {
-		const groupStage = new Round({ name: "Group Stage", teams: this.teams });
+		// Group stage
+		const groupStage = new GroupStage({
+			name: "Group Stage",
+			teams: this.teams,
+		});
 		this.rounds.push(groupStage);
 		groupStage.start();
 
-		// const stage2Teams = this.teams.filter((team) => team.place < 3);
-		// const stage2 = new Round({ name: "Last 16", teams: stage2Teams });
-		// stage2.start();
+		// Last 16
+		const stage2Teams = this.teams.filter((team) => team.place < 3);
+		const stage2 = new KnockOutRound({
+			name: "Last 16",
+			teams: stage2Teams,
+		});
+		this.rounds.push(stage2);
+		stage2.start();
 
-		// console.log('stage2Teams ', stage2Teams);
-		// const stage3Teams = this.knockOutRound(stage2Teams)
+		// Quarter-finals
+		const stage3Teams = stage2Teams.filter((team) => team.place === 1);
+		const stage3 = new PreFinalRound({
+			name: "Quarter-finals",
+			teams: stage3Teams,
+		});
+		this.rounds.push(stage3);
+		stage3.start();
 
-		this.showResults();
+		// Semi-finals
+		const stage4Teams = stage3Teams.filter((team) => team.place === 1);
+		const stage4 = new PreFinalRound({
+			name: "Semi-finals",
+			teams: stage4Teams,
+		});
+		this.rounds.push(stage4);
+		stage4.start();
+
+		// Finals!
+		const stage5Teams = stage4Teams.filter((team) => team.place === 1);
+		const stage5 = new PreFinalRound({
+			name: "Half-finals",
+			teams: stage5Teams,
+		});
+		this.rounds.push(stage5);
+		stage5.start();
+
+		this.winner = stage5Teams.find((team) => team.place === 1);
+
+		this.showStats();
 	}
 
-	showResults() {
+	showStats() {
 		console.log("--------- Tournament Results ---------");
-		this.rounds.forEach((round) => round.showResults());
-		console.log("done");
+		this.rounds.forEach((round) => round.showStats());
+		console.log("=====================================");
+		console.log("         Winner: " + this.winner.name);
+		console.log("=====================================");
 	}
 }
